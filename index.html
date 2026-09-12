@@ -146,10 +146,23 @@
   /* cards */
   .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;
         padding:clamp(22px,3vw,32px)}
-  .card h3{margin-bottom:9px}
+  .card h3{margin-bottom:9px;display:flex;align-items:center;gap:11px}
   .card p{margin:0;font-size:15.5px}
   .card.bad h3{color:var(--muted)}
   .card.good h3{color:var(--accent)}
+  /* scanning cue: a muted cross against the DIY card, the brand tick against ours.
+     Drawn in CSS so it stays crisp and needs no icon font or extra request. */
+  .mk{flex:0 0 auto;width:26px;height:26px;border-radius:50%;position:relative;
+      display:inline-block;margin-top:1px}
+  .card.bad .mk{background:var(--panel-3);border:1px solid var(--line)}
+  .card.good .mk{background:var(--accent-soft);border:1px solid var(--accent)}
+  .card.bad .mk::before,.card.bad .mk::after{content:"";position:absolute;left:50%;top:50%;
+      width:11px;height:2px;border-radius:1px;background:var(--muted)}
+  .card.bad .mk::before{transform:translate(-50%,-50%) rotate(45deg)}
+  .card.bad .mk::after{transform:translate(-50%,-50%) rotate(-45deg)}
+  .card.good .mk::before{content:"";position:absolute;left:50%;top:46%;width:11px;height:5.5px;
+      border-left:2.2px solid var(--accent);border-bottom:2.2px solid var(--accent);
+      transform:translate(-50%,-50%) rotate(-45deg)}
   .split{display:grid;grid-template-columns:1fr 1fr;gap:clamp(18px,2.6vw,26px)}
   @media(max-width:860px){.split{grid-template-columns:1fr}}
 
@@ -226,6 +239,7 @@
   .shelf{display:flex;gap:clamp(8px,1vw,12px);align-items:flex-end;
          overflow-x:auto;padding-bottom:6px}
   .shelf figure{margin:0;flex:0 0 clamp(92px,7.4vw,110px);position:relative}
+  @media(max-width:620px){.shelf figure{flex:0 0 76px}}
   .shelf img{width:100%;height:auto;display:block;border-radius:2px;
              box-shadow:0 3px 10px -3px rgba(0,0,0,.35)}
   .shelf figcaption{font-size:11px;color:var(--muted);margin-top:7px;line-height:1.35}
@@ -410,7 +424,7 @@
       </p>
       <div class="split" style="margin-top:38px">
         <div class="card bad">
-          <h3>Generating a cover yourself</h3>
+          <h3><span class="mk" aria-hidden="true"></span>Generating a cover yourself</h3>
           <p>
             One prompt, one look, and no idea whether it matches what buyers in your
             category already respond to. Warped type, unusable resolution, and a
@@ -419,7 +433,7 @@
           </p>
         </div>
         <div class="card good">
-          <h3>Working with KDPChimp</h3>
+          <h3><span class="mk" aria-hidden="true"></span>Working with KDPChimp</h3>
           <p>
             A KDP expert researches your market first. You see dozens of directions
             before committing to one. The winner is refined with you, rebuilt by hand
@@ -954,6 +968,16 @@ const CONFIG = {
                   '<figcaption>'+(isMine?'Your cover':'Competitor')+'</figcaption>';
       shelf.appendChild(f);
     });
+    // On a narrow screen the row is wider than the viewport and our cover starts
+    // off-screen, which is exactly the thing the section exists to show. Nudge the
+    // row (not the page) so our cover is in view from the start.
+    const centreMine=()=>{
+      const m=shelf.querySelector('.mine'); if(!m) return;
+      const target=m.offsetLeft-(shelf.clientWidth-m.offsetWidth)/2;
+      shelf.scrollLeft=Math.max(0,target);
+    };
+    if(shelf.scrollWidth>shelf.clientWidth) centreMine();
+    window.addEventListener('load',()=>{ if(shelf.scrollWidth>shelf.clientWidth) centreMine(); });
   }
 
   const q=document.getElementById('quotes');
