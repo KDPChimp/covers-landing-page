@@ -120,9 +120,15 @@ everyone paid in USD.
 **Also in Stripe:** the old **Professional Book Cover** product at US$299 is still
 active and unused. Archive it so nobody picks the wrong one.
 
-**PayPal** — not created yet. `paypal.com/businessmanage/paymentlinks` needs a
-passkey/Face ID login that only you can complete. Fixed price $499, return URL
-the same `thanks.html`, then set `paypalLink` in `build.py`.
+**PayPal** — `https://www.paypal.com/ncp/payment/Y7EPZEEWP5P8J`
+(KDPChimp Limited business account, joe.eyeington@gmail.com)
+- **Professional Book Cover Design**, US$499 one set price. The account's own
+  balance is GBP, so payouts will convert.
+- Shipping address collection turned OFF (it defaults ON, it's a digital service)
+- Auto-return to `https://covers.kdpchimp.com/thanks.html`
+- **No promo codes.** PayPal's no-code links have no coupon field, so RH20 is
+  Stripe-only. If someone wants RH20 and insists on PayPal, send them a manual
+  invoice for $399.20.
 
 **Gold pilot** — `https://airtable.com/appuAp8Kb6iGqSejj/pagilVCTu8HE16bpc/form`
 Public Airtable form → `22 Gold Pilot Applications`. Name and email required
