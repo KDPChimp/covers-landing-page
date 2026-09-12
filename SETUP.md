@@ -134,21 +134,33 @@ n8n can match the brief to the payment without anyone retyping an order number.
 
 ---
 
-## 4. Deploy
+## 4. Deploy — live, and how to update it
 
-```bash
-cd kdpchimp-covers
-npx vercel            # first run: log in, accept the defaults
-npx vercel --prod
+- **Live:** https://covers.kdpchimp.com
+- **Vercel project:** `coverslandingpage` (team `support-7807's projects`, Hobby)
+- **Repo:** `KDPChimp/covers-landing-page`, branch `main` — connected to the
+  project, so **every push to main deploys to production automatically**
+- **DNS:** GoDaddy, CNAME `covers` -> `9f86d5233d43fa74.vercel-dns-017.com`
+  (MX untouched: mail still on `smtp.google.com`)
+
+### Making an update
+
+1. Claude edits `build.py` and runs `python3 build.py` (regenerates `index.html`)
+2. Claude commits
+3. **You run one command, in your Mac's own Terminal:**
+
+```
+cd ~/Documents/Claude/Projects/KDPChimp/covers-landing-page && git push
 ```
 
-Then in Vercel → Project → Settings → Domains → add `covers.kdpchimp.com`, and
-add the CNAME it gives you at your DNS host. Propagation is usually minutes.
+Vercel builds from the commit and the domain updates itself. The push has to come
+from your Terminal because that is where your GitHub credentials live — Claude's
+sandbox can reach GitHub but has no way to authenticate as you, and cannot reach
+vercel.com at all.
 
-There's no build step and no framework — it's three static files, so it will
-score near-perfect on speed out of the box.
-
----
+`.vercelignore` keeps `build.py`, `picker.html` and every `.md` in the repo for
+history but out of the published site. `covers-site-deploy/` and
+`covers-site.zip` are leftovers from the Vercel Drop era and can be deleted.
 
 ## Checks before you send it to the list
 
