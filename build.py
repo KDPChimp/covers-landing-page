@@ -373,6 +373,55 @@ CSS = r"""
   details[open] summary::after{content:"\2212"}
   details p{margin:13px 0 0;max-width:72ch;font-size:15.5px}
 
+  /* ─────────────────────────────────────────────────────────────────────
+     MOBILE POLISH (<=620px). Desktop is untouched. The page was built at
+     desktop type sizes and simply narrowed, which left phone readers with
+     17px/1.68 body copy, a 52px empty gutter beside every process step,
+     and a hero fan wide enough to clip on both edges. This block fixes
+     the scale rather than the structure.
+     ───────────────────────────────────────────────────────────────────── */
+  @media(max-width:620px){
+    body{font-size:15.8px;line-height:1.58}
+    p{margin-bottom:.85em}
+    .lede{font-size:16px}
+
+    /* hero: headline breaks cleanly, buttons are full-width and equal */
+    .hero{padding-block:32px 28px}
+    h1{font-size:32px;line-height:1.12}
+    h1 .hl{white-space:nowrap}
+    .hero .lede{margin-top:15px}
+    .hero .btn-row{display:grid;grid-template-columns:1fr;gap:10px;margin-top:22px}
+    .hero .btn-row .btn{width:100%}
+    .rating{font-size:14px;margin-top:18px}
+    .micro{font-size:12.8px;line-height:1.5;margin-top:13px}
+    /* the fan is rotated, so it needs room inside the gutters or it clips */
+    .fan{width:84%;margin-inline:auto;min-height:0;aspect-ratio:1/.84}
+    .fan img{width:44%}
+
+    /* trust bar: tight labels, no hyphen-breaking */
+    .trust .wrap{gap:20px 16px;padding-block:22px}
+    .stat span{display:block;line-height:1.35;hyphens:none}
+
+    /* process: reclaim the number gutter — the number sits above the title */
+    .step{grid-template-columns:1fr;gap:5px;padding-block:24px}
+    .step .sc,.step p{grid-column:1}
+    .step-num{font-size:21px;line-height:1;margin-bottom:3px}
+    .step h3{margin-bottom:6px}
+    .who{margin-top:9px;font-size:10.8px;padding:3px 9px}
+
+    /* body copy inside cards and panels */
+    .card p,.test p,.crit span,details p,.compare > p,.shelf-note,
+    .mode p,.guarantee p,.ps{font-size:15px}
+    .crit span{line-height:1.5}
+    blockquote p{font-size:15.2px;line-height:1.55}
+
+    /* headings and section rhythm */
+    section{padding-block:44px}
+    h2{font-size:26px}
+    .price{padding:22px}
+    .guarantee{padding:22px;gap:18px}
+  }
+
   /* final */
   .final{background:var(--panel);border-top:1px solid var(--line);text-align:center}
   .final .lede{margin-inline:auto}
@@ -440,7 +489,7 @@ BODY = r"""
       <div class="stat"><b>4.9/5</b><span>across 100+ reviews</span></div>
       <div class="stat"><b>30+</b><span>publishers on the new system</span></div>
       <div class="stat"><b>8 yrs</b><span>publishing on KDP ourselves</span></div>
-      <div class="stat"><b>100+</b><span>books published in-house</span></div>
+      <div class="stat"><b>100+</b><span>books published in&#8209;house</span></div>
     </div>
   </div>
 
