@@ -817,7 +817,7 @@ const CONFIG = {
   /* 1. PAYMENT LINKS — empty links fall back to email, so nothing breaks. */
   stripeLink : "",
   paypalLink : "",
-  goldLink   : "",
+  goldLink   : "https://airtable.com/appuAp8Kb6iGqSejj/pagilVCTu8HE16bpc/form",
   email      : "support@kdpchimp.com",
 
   /* 2. CAPACITY — update slotsLeft as the month fills. Set to null to hide.
@@ -879,18 +879,19 @@ const CONFIG = {
   /* 5. REVIEWS — from kdpchimp.com/testimonials. "..." marks where a longer
      quote was shortened; check wording against your live page.          */
   quotes: [
-    /* Every quote below is VERIFIED word-for-word from the customer's own email
-       (pulled during the Sept 2026 inbox audit), and every one of these people
-       also appears publicly on kdpchimp.com/testimonials — so nothing here is
-       new to the world. "…" marks where a longer message was shortened.
-       All are about BOOK COVERS specifically, not A+ content. */
-    { t:"Josiah did an outstanding job designing the book cover for my first book… The book cover is visually striking and aligns perfectly with the theme", n:"Jim Ray", d:"Book cover client" },
-    { t:"Their attention to detail in the graphics, design, and formatting of my bookcover was what truly brought my vision to life", n:"Urbi Ghosh", d:"Book cover client" },
-    { t:"His design skills are nothing short of extraordinary… brought a unique artistic flair that elevated our project beyond our expectations", n:"Angela &amp; Gérald", d:"Book cover clients" },
+    /* Every quote is VERIFIED word-for-word - either from the customer's own
+       email (Sept 2026 inbox audit) or from the live kdpchimp.com/testimonials
+       page. "…" marks where a longer message was shortened. All are about BOOK
+       COVERS specifically, not A+ content. None name Josiah personally - the
+       praise is aimed at the studio, which is what we want on a sales page. */
+    { t:"Their attention to detail in the graphics, design, and formatting of my book cover was what truly brought my vision to life", n:"Urbi Ghosh", d:"Book cover client" },
+    { t:"I had the pleasure of working with… KDPChimp for the cover of my newest coloring book, and I couldn't be more thrilled with the results!", n:"Chris Roberts", d:"Maxwell Pawsworth" },
     { t:"If you need a visually stunning book cover… KDPChimp can do it all!", n:"Lucy &amp; Joseph Naim", d:"Book cover clients" },
+    { t:"…design skills are nothing short of extraordinary… a unique artistic flair that elevated our project beyond our expectations", n:"Angela &amp; Gérald", d:"Book cover clients" },
+    { t:"I agree that your cover is better than the one I submitted to you!", n:"Dean Gemberling", d:"Book cover client" },
     { t:"You did such a great job. I love them both… Love the covers!!!!", n:"Julia Bailey", d:"Book cover client" },
     { t:"The cover looks fantastic, and the team did a great job.", n:"Sarisa", d:"Book cover client" },
-    { t:"Working with Josiah from KDPChimp has been an absolutely fantastic experience!", n:"Jyotsna Ramachandran", d:"Founder &amp; CEO, Happy Self Publishing" }
+    { t:"Partnering with KDPChimp was an exceptional experience from start to finish. Their professionalism, expertise, and meticulous attention to detail far exceeded my expectations.", n:"S.L. Jungle", d:"KDPChimp client" }
   ]
 };
 
