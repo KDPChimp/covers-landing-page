@@ -1,0 +1,1091 @@
+#!/usr/bin/env python3
+"""
+Builds the KDPChimp cover landing page in three visual styles from one source of truth.
+
+    python3 build.py
+
+Emits index-gallery.html, index-directresponse.html, index-warmdark.html.
+Same copy, same structure, same config — only the theme block differs.
+Once a style is chosen, copy the winner to index.html and delete the rest.
+"""
+
+import pathlib
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  THEMES
+# ─────────────────────────────────────────────────────────────────────────────
+THEMES = {
+"gallery": dict(
+    name="Gallery Light",
+    note="Warm neutral ground, one terracotta accent, serif display. Covers carry the colour.",
+    fonts="family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600;700",
+    theme_color="#FBF8F3",
+    css="""
+    --bg:#FBF8F3; --panel:#FFFFFF; --panel-2:#F4EFE7; --panel-3:#F0E9DE;
+    --ink:#14100C; --ink-2:#3A332B; --muted:#6B6156; --line:rgba(20,16,12,.13);
+    --accent:#C4462A; --accent-lift:#A93A20; --accent-soft:#FBEDE9;
+    --star:#C4462A;
+    --hl:rgba(196,70,42,.28); --hl-start:64%;
+    --shadow:0 14px 40px -20px rgba(20,16,12,.35);
+    --tile-shadow:0 12px 30px -14px rgba(20,16,12,.42);
+    --hero-glow:radial-gradient(52% 60% at 78% 18%,rgba(196,70,42,.09),transparent 70%);
+    --display:'Fraunces',Georgia,serif; --body:'Inter',system-ui,sans-serif;
+    --h1w:600; --h2w:600; --h3w:600; --btnw:600;
+    --radius:7px; --tracking:-.021em; --btn-shadow:var(--shadow);
+    """),
+
+"directresponse": dict(
+    name="Direct Response",
+    note="White, heavy black type, orange CTA, yellow highlight, boxed guarantee.",
+    fonts="family=Montserrat:wght@600;700;800;900&family=Inter:wght@400;500;600;700",
+    theme_color="#FFFFFF",
+    css="""
+    --bg:#FFFFFF; --panel:#F6F6F4; --panel-2:#FFF9E0; --panel-3:#EFEFEC;
+    --ink:#121212; --ink-2:#333333; --muted:#565656; --line:rgba(0,0,0,.14);
+    --accent:#F2600C; --accent-lift:#D75103; --accent-soft:#FFF1E6;
+    --star:#F5A623;
+    --hl:#FFE94D; --hl-start:0%;
+    --shadow:0 5px 0 0 rgba(0,0,0,.88);
+    --tile-shadow:0 6px 18px -8px rgba(0,0,0,.4);
+    --hero-glow:none;
+    --display:'Montserrat',system-ui,sans-serif; --body:'Inter',system-ui,sans-serif;
+    --h1w:900; --h2w:800; --h3w:700; --btnw:800;
+    --radius:5px; --tracking:-.026em; --btn-shadow:var(--shadow);
+    """),
+
+"warmdark": dict(
+    name="Warm Dark Premium",
+    note="No blue anywhere. Warm near-black with brass. Premium imprint feel.",
+    fonts="family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600;700",
+    theme_color="#12100E",
+    css="""
+    --bg:#12100E; --panel:#1B1815; --panel-2:#232019; --panel-3:#171410;
+    --ink:#F4EDE1; --ink-2:#DDD3C4; --muted:#A29684; --line:rgba(244,237,225,.14);
+    --accent:#C9A227; --accent-lift:#DDB63A; --accent-soft:rgba(201,162,39,.11);
+    --star:#C9A227;
+    --hl:rgba(201,162,39,.42); --hl-start:64%;
+    --shadow:0 18px 44px -22px rgba(0,0,0,.9);
+    --tile-shadow:0 16px 36px -16px rgba(0,0,0,.85);
+    --hero-glow:radial-gradient(52% 60% at 78% 16%,rgba(201,162,39,.13),transparent 70%);
+    --display:'Fraunces',Georgia,serif; --body:'Inter',system-ui,sans-serif;
+    --h1w:600; --h2w:600; --h3w:600; --btnw:700;
+    --radius:5px; --tracking:-.021em; --btn-shadow:var(--shadow);
+    """),
+}
+
+# On dark, the primary button needs dark text against brass.
+BTN_TEXT = {"gallery": "#fff", "directresponse": "#fff", "warmdark": "#17130A"}
+
+CSS = r"""
+  :root{__THEME__
+    --pad:clamp(20px,5vw,44px); --maxw:1160px;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);
+       font-size:17px;line-height:1.68;-webkit-font-smoothing:antialiased}
+  img{max-width:100%;height:auto;display:block}
+  a{color:inherit}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding-inline:var(--pad)}
+  section{padding-block:clamp(56px,7.5vw,104px)}
+  /* the header is sticky, so anchors must stop below it or you land on the
+     tail of the previous section */
+  section[id],main [id]{scroll-margin-top:96px}
+  h1,h2,h3{font-family:var(--display);margin:0;line-height:1.11;
+           letter-spacing:var(--tracking);text-wrap:balance}
+  h1{font-size:clamp(35px,5.3vw,58px);font-weight:var(--h1w)}
+  h2{font-size:clamp(27px,3.7vw,41px);font-weight:var(--h2w)}
+  h3{font-size:20px;font-weight:var(--h3w);line-height:1.3;letter-spacing:-.01em}
+  p{margin:0 0 1em;color:var(--muted)}
+  .lede{font-size:clamp(16px,1.85vw,19px);max-width:60ch}
+  .eyebrow{font-family:var(--body);font-size:11.5px;font-weight:700;letter-spacing:.16em;
+           text-transform:uppercase;color:var(--accent);margin:0 0 15px}
+  .hl{background:linear-gradient(transparent var(--hl-start),var(--hl) var(--hl-start));
+      padding:0 .06em;color:var(--ink);
+      -webkit-box-decoration-break:clone;box-decoration-break:clone}
+  .rule{height:1px;background:var(--line);border:0;margin:0}
+  .nb{white-space:nowrap}
+
+  /* buttons */
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:9px;
+       padding:16px 28px;border-radius:var(--radius);font-family:var(--body);
+       font-weight:var(--btnw);font-size:15.5px;text-decoration:none;border:0;cursor:pointer;
+       transition:transform .14s ease,background .14s ease}
+  .btn:hover{transform:translateY(-2px)}
+  .btn-primary{background:var(--accent);color:__BTNTEXT__;box-shadow:var(--btn-shadow)}
+  .btn-primary:hover{background:var(--accent-lift)}
+  .btn-quiet{background:transparent;color:var(--ink);border:1.5px solid var(--line)}
+  .btn-quiet:hover{border-color:var(--accent);color:var(--accent)}
+  .btn-row{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-top:26px}
+
+  /* announcement + header */
+  .announce{background:var(--ink);color:var(--bg);text-align:center;font-size:13.5px;
+            font-weight:600;padding:9px 16px}
+  .announce b{color:var(--bg)}
+  header{position:sticky;top:0;z-index:60;background:var(--bg);
+         border-bottom:1px solid var(--line)}
+  .nav{display:flex;align-items:center;justify-content:space-between;gap:18px;padding-block:13px}
+  .brand{font-family:var(--display);font-weight:var(--h2w);font-size:20px;text-decoration:none}
+  .brand em{font-style:normal;color:var(--accent)}
+  .nav-links{display:flex;gap:24px;font-size:14.5px;font-weight:600}
+  .nav-links a{text-decoration:none;color:var(--muted)}
+  .nav-links a:hover{color:var(--accent)}
+  .nav .btn{padding:11px 20px;font-size:14px}
+  @media(max-width:980px){.nav-links{display:none}}
+
+  /* hero */
+  .hero{position:relative;overflow:hidden;padding-block:clamp(46px,6vw,86px) clamp(40px,5vw,72px)}
+  .hero::before{content:"";position:absolute;inset:0;background:var(--hero-glow);pointer-events:none}
+  .hero-grid{position:relative;display:grid;grid-template-columns:1.04fr .96fr;
+             gap:clamp(28px,4.5vw,58px);align-items:center}
+  @media(max-width:940px){.hero-grid{grid-template-columns:1fr}}
+  .hero .lede{margin-top:19px}
+  .rating{display:flex;align-items:center;gap:10px;margin-top:22px;font-weight:700;font-size:15px}
+  .rating .s{color:var(--star);letter-spacing:2px}
+  .micro{font-size:13.5px;color:var(--muted);margin-top:15px;max-width:48ch}
+  .fan{position:relative;aspect-ratio:1/.9;min-height:290px}
+  .fan img{position:absolute;width:45%;border-radius:3px;box-shadow:var(--tile-shadow);
+           transition:transform .5s cubic-bezier(.2,.7,.3,1)}
+  .fan img:nth-child(1){left:1%;top:14%;transform:rotate(-8deg)}
+  .fan img:nth-child(2){left:27%;top:2%;transform:rotate(-1deg);z-index:2}
+  .fan img:nth-child(3){left:53%;top:16%;transform:rotate(8deg)}
+  .fan:hover img:nth-child(1){transform:rotate(-12deg) translateY(-9px)}
+  .fan:hover img:nth-child(2){transform:rotate(0) translateY(-15px)}
+  .fan:hover img:nth-child(3){transform:rotate(12deg) translateY(-9px)}
+
+  /* trust */
+  .trust{background:var(--panel);border-block:1px solid var(--line)}
+  .trust .wrap{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;padding-block:27px}
+  @media(max-width:760px){.trust .wrap{grid-template-columns:repeat(2,1fr);gap:24px}}
+  .stat b{display:block;font-family:var(--display);font-size:clamp(23px,2.9vw,31px);
+          font-weight:var(--h2w);line-height:1.1}
+  .stat span{font-size:13px;color:var(--muted);font-weight:600}
+
+  /* niche marquee */
+  .niches{background:var(--panel-3);border-bottom:1px solid var(--line);
+          padding-block:30px;overflow:hidden}
+  .niches .lbl{text-align:center;font-size:11.5px;font-weight:700;letter-spacing:.16em;
+               text-transform:uppercase;color:var(--muted);margin:0 0 20px}
+  .mq-mask{-webkit-mask-image:linear-gradient(90deg,transparent,#000 9%,#000 91%,transparent);
+           mask-image:linear-gradient(90deg,transparent,#000 9%,#000 91%,transparent)}
+  .marquee{display:flex;width:max-content;animation:slide 64s linear infinite}
+  .marquee:hover{animation-play-state:paused}
+  .marquee.rev{animation-direction:reverse;animation-duration:78s;margin-top:10px}
+  @keyframes slide{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+  .chip{flex:0 0 auto;margin-inline:5px;padding:8px 16px;border-radius:999px;
+        border:1px solid var(--line);background:var(--bg);
+        font-size:14px;font-weight:600;color:var(--ink-2);white-space:nowrap}
+  @media(prefers-reduced-motion:reduce){
+    .marquee{animation:none;flex-wrap:wrap;width:auto;justify-content:center;gap:8px}
+    .marquee.rev{display:none}
+    .mq-mask{-webkit-mask-image:none;mask-image:none}
+  }
+
+  /* cards */
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;
+        padding:clamp(22px,3vw,32px)}
+  .card h3{margin-bottom:9px}
+  .card p{margin:0;font-size:15.5px}
+  .card.bad h3{color:var(--muted)}
+  .card.good h3{color:var(--accent)}
+  .split{display:grid;grid-template-columns:1fr 1fr;gap:clamp(18px,2.6vw,26px)}
+  @media(max-width:860px){.split{grid-template-columns:1fr}}
+
+  ul.ticks{list-style:none;padding:0;margin:0;display:grid;gap:11px}
+  ul.ticks li{padding-left:29px;position:relative;color:var(--ink-2);font-size:15.5px}
+  ul.ticks li::before{content:"";position:absolute;left:2px;top:.62em;width:14px;height:7px;
+        border-left:2.5px solid var(--accent);border-bottom:2.5px solid var(--accent);
+        transform:rotate(-45deg)}
+
+  /* process */
+  .steps{display:grid;margin-top:44px;border-top:1px solid var(--line)}
+  .step{display:grid;grid-template-columns:80px 1fr 1.15fr;gap:clamp(14px,3vw,36px);
+        padding-block:clamp(24px,3.2vw,36px);border-bottom:1px solid var(--line);align-items:start}
+  @media(max-width:880px){.step{grid-template-columns:52px 1fr}.step .sc{grid-column:2}}
+  .step-num{font-family:var(--display);font-size:clamp(26px,3.6vw,38px);
+            font-weight:var(--h2w);color:var(--accent);line-height:1.1}
+  .step h3{margin-bottom:7px}
+  .step p{margin:0;font-size:15.5px}
+  .who{display:inline-block;margin-top:12px;font-size:11.5px;font-weight:700;
+       letter-spacing:.09em;text-transform:uppercase;color:var(--accent);
+       border:1px solid var(--line);border-radius:999px;padding:4px 11px}
+
+  /* layers */
+  .layers{display:grid;grid-template-columns:1.05fr .95fr;gap:clamp(24px,4vw,54px);
+          align-items:center;margin-top:44px}
+  @media(max-width:920px){.layers{grid-template-columns:1fr}}
+  /* transparent cutout — no frame, it floats on the section background */
+  .layers-img{margin:0}
+  .layers-img img{width:100%;height:auto;display:block}
+  .layers h3{font-size:clamp(21px,2.7vw,28px);margin-bottom:12px}
+  .layer-list{list-style:none;padding:0;margin:24px 0 0;display:grid;gap:14px}
+  .layer-list li{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:start;
+                 padding-bottom:14px;border-bottom:1px solid var(--line)}
+  .layer-list li:last-child{border-bottom:0;padding-bottom:0}
+  .layer-list .ic{width:34px;height:34px;border-radius:8px;background:var(--accent-soft);
+                  border:1px solid var(--line);display:grid;place-items:center;
+                  font-size:15px;color:var(--accent)}
+  .layer-list b{display:block;color:var(--ink);font-weight:700;font-size:15.5px}
+  .layer-list span{color:var(--muted);font-size:15px}
+  .callout{background:var(--panel);border:1px solid var(--line);border-radius:14px;
+           padding:clamp(24px,3.2vw,38px);margin-top:30px}
+  .three{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;margin-top:20px}
+  @media(max-width:760px){.three{grid-template-columns:1fr;gap:18px}}
+  .three div b{display:block;color:var(--accent);font-weight:700;font-size:15.5px;margin-bottom:3px}
+  .three div span{color:var(--muted);font-size:15px}
+
+
+  /* the six-point review */
+  .criteria{display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(14px,2vw,20px);margin-top:38px}
+  @media(max-width:880px){.criteria{grid-template-columns:repeat(2,1fr)}}
+  @media(max-width:560px){.criteria{grid-template-columns:1fr}}
+  .crit{background:var(--panel);border:1px solid var(--line);border-radius:12px;
+        padding:22px;position:relative}
+  .crit i{display:block;font-style:normal;font-family:var(--display);font-size:13px;
+          font-weight:700;color:var(--accent);letter-spacing:.1em;margin-bottom:9px}
+  .crit b{display:block;font-size:16px;font-weight:700;color:var(--ink);margin-bottom:5px;
+          line-height:1.3}
+  .crit span{font-size:14.5px;color:var(--muted);line-height:1.55}
+
+  .tests{display:grid;grid-template-columns:1fr 1fr;gap:clamp(16px,2.4vw,24px);margin-top:22px}
+  @media(max-width:760px){.tests{grid-template-columns:1fr}}
+  .test{background:var(--panel-2);border:1px solid var(--line);border-radius:12px;padding:24px}
+  .test h3{font-size:18px;margin-bottom:7px}
+  .test p{margin:0;font-size:15px}
+
+  /* competitor thumbnail comparison */
+  .compare{margin-top:26px;background:var(--panel);border:1px solid var(--line);
+           border-radius:14px;padding:clamp(22px,3vw,32px)}
+  .compare h3{font-size:clamp(19px,2.3vw,24px);margin-bottom:8px}
+  .compare > p{margin:0 0 22px;font-size:15.5px;max-width:66ch}
+  /* real competitor covers, at real browse size. Every cover keeps its own
+     proportions — no aspect-ratio, no object-fit — because cropping a competitor
+     to match ours would rig the comparison. Bottom-aligned, like a shelf. */
+  .shelf{display:flex;gap:clamp(8px,1vw,12px);align-items:flex-end;
+         overflow-x:auto;padding-bottom:6px}
+  .shelf figure{margin:0;flex:0 0 clamp(92px,7.4vw,110px);position:relative}
+  .shelf img{width:100%;height:auto;display:block;border-radius:2px;
+             box-shadow:0 3px 10px -3px rgba(0,0,0,.35)}
+  .shelf figcaption{font-size:11px;color:var(--muted);margin-top:7px;line-height:1.35}
+  .shelf .mine img{outline:3px solid var(--accent);outline-offset:2px}
+  .shelf .mine figcaption{color:var(--accent);font-weight:700}
+  .shelf-note{margin:16px 0 0;font-size:13.5px;color:var(--muted)}
+
+  /* involvement */
+  .modes{display:grid;grid-template-columns:1fr 1fr;gap:clamp(18px,2.6vw,26px);margin-top:40px}
+  @media(max-width:860px){.modes{grid-template-columns:1fr}}
+  .mode{background:var(--panel);border:1px solid var(--line);border-radius:14px;
+        padding:clamp(24px,3vw,34px);position:relative;overflow:hidden}
+  .mode::before{content:"";position:absolute;inset:0 0 auto 0;height:3px;background:var(--accent)}
+  .mode .kicker{font-size:11.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;
+                color:var(--accent);margin:0 0 10px}
+  .mode h3{font-size:21px;margin-bottom:10px}
+  .mode p{margin:0 0 16px;font-size:15.5px}
+  .pm-strip{display:flex;flex-wrap:wrap;gap:14px;justify-content:center;margin-top:24px;
+            padding:22px;border:1px solid var(--line);border-radius:14px;background:var(--panel-2)}
+  .pm-strip div{flex:1 1 210px;min-width:0;text-align:center}
+  .pm-strip b{display:block;color:var(--accent);font-size:15.5px;font-weight:700;margin-bottom:2px}
+  .pm-strip span{color:var(--ink-2);font-size:14.5px}
+
+  /* gallery — masonry columns so every cover keeps its true proportions.
+     Book covers are 6x9, 8.5x11 and 1600x2560; a fixed tile ratio would
+     crop titles off the ones that don't match. */
+  .gallery{columns:4;column-gap:clamp(13px,2vw,22px);margin-top:40px}
+  @media(max-width:900px){.gallery{columns:3}}
+  @media(max-width:620px){.gallery{columns:2}}
+  .tile{position:relative;margin:0 0 clamp(13px,2vw,22px);border-radius:4px;overflow:hidden;
+        background:var(--panel);box-shadow:var(--tile-shadow);
+        break-inside:avoid;-webkit-column-break-inside:avoid;page-break-inside:avoid;
+        transition:transform .35s ease}
+  .tile:hover{transform:translateY(-5px)}
+  .tile img{width:100%;height:auto;display:block}
+  .tile figcaption{position:absolute;inset:auto 0 0 0;padding:26px 13px 11px;font-size:11.5px;
+        font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#fff;
+        background:linear-gradient(transparent,rgba(0,0,0,.85));opacity:0;transition:opacity .3s}
+  .tile:hover figcaption{opacity:1}
+
+  /* reviews */
+  .quotes{columns:3;column-gap:clamp(14px,2.2vw,24px);margin-top:40px}
+  @media(max-width:1000px){.quotes{columns:2}}
+  @media(max-width:660px){.quotes{columns:1}}
+  blockquote{break-inside:avoid;margin:0 0 clamp(14px,2.2vw,24px);background:var(--panel);
+             border:1px solid var(--line);border-radius:12px;padding:24px}
+  blockquote .s{color:var(--star);letter-spacing:2px;font-size:13px;margin-bottom:11px}
+  blockquote p{font-size:16px;line-height:1.6;color:var(--ink);margin:0 0 14px}
+  blockquote cite{font-style:normal;font-size:13.5px;color:var(--accent);font-weight:700}
+  blockquote cite small{display:block;color:var(--muted);font-weight:500;font-size:12.5px;margin-top:1px}
+
+  /* pricing */
+  .price-wrap{display:grid;grid-template-columns:1.12fr .88fr;gap:clamp(18px,2.6vw,26px);
+              margin-top:40px;align-items:start}
+  @media(max-width:940px){.price-wrap{grid-template-columns:1fr}}
+  .price{background:var(--panel);border:2px solid var(--accent);
+         border-radius:calc(var(--radius) + 7px);padding:clamp(24px,3.2vw,40px)}
+  .price.alt{border:1px solid var(--line)}
+  .tag{display:inline-block;font-size:11.5px;font-weight:700;letter-spacing:.13em;
+       text-transform:uppercase;color:var(--accent);border:1px solid var(--line);
+       border-radius:999px;padding:5px 12px;margin-bottom:16px}
+  .amount{font-family:var(--display);font-size:clamp(42px,5.4vw,58px);font-weight:var(--h2w);
+          line-height:1;letter-spacing:-.03em}
+  .amount small{font-family:var(--body);font-size:15px;font-weight:600;color:var(--muted);
+                letter-spacing:0}
+  .price ul.ticks{margin:24px 0 28px}
+  .slots{margin-top:16px;font-size:14px;font-weight:700;color:var(--accent)}
+  .secure{margin-top:12px;font-size:12.5px;color:var(--muted);font-weight:600}
+  .guarantee{border:2px solid var(--accent);border-radius:calc(var(--radius) + 7px);
+             padding:clamp(22px,3vw,32px);background:var(--accent-soft);
+             margin-top:clamp(18px,2.6vw,26px);display:flex;gap:clamp(20px,3vw,32px);
+             align-items:center}
+  @media(max-width:620px){.guarantee{flex-direction:column;text-align:center}}
+  .guarantee h3{margin-bottom:8px}
+  .guarantee p{margin:0;font-size:15.5px;color:var(--ink-2);max-width:70ch}
+  .seal{flex:0 0 auto;width:116px;height:116px;border-radius:50%;
+        border:3px solid var(--accent);display:flex;flex-direction:column;
+        align-items:center;justify-content:center;background:var(--bg);
+        box-shadow:0 0 0 5px var(--accent-soft)}
+  .seal .pct{font-family:var(--display);font-weight:var(--h1w);font-size:30px;
+             line-height:1;letter-spacing:-.02em;color:var(--accent)}
+  .seal .sub{margin-top:5px;font-size:10.5px;font-weight:700;letter-spacing:.1em;
+             text-transform:uppercase;color:var(--ink-2);line-height:1.3;text-align:center}
+
+  /* faq */
+  details{border-bottom:1px solid var(--line);padding-block:20px}
+  details summary{cursor:pointer;list-style:none;font-family:var(--display);
+        font-weight:var(--h3w);font-size:19px;display:flex;justify-content:space-between;
+        gap:18px;align-items:center;letter-spacing:-.01em}
+  details summary::-webkit-details-marker{display:none}
+  details summary::after{content:"+";color:var(--accent);font-size:23px;line-height:1;
+        font-family:var(--body)}
+  details[open] summary::after{content:"\2212"}
+  details p{margin:13px 0 0;max-width:72ch;font-size:15.5px}
+
+  /* final */
+  .final{background:var(--panel);border-top:1px solid var(--line);text-align:center}
+  .final .lede{margin-inline:auto}
+  .final .btn-row{justify-content:center}
+  .ps{max-width:64ch;margin:34px auto 0;padding-top:24px;border-top:1px solid var(--line);
+      font-size:15px;color:var(--muted);text-align:left}
+  .ps b{color:var(--ink)}
+  footer{padding-block:32px;font-size:13.5px;color:var(--muted)}
+  footer .wrap{display:flex;flex-wrap:wrap;gap:16px;justify-content:space-between}
+  footer a{color:var(--muted);text-decoration:none}
+  footer a:hover{color:var(--accent)}
+"""
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  PAGE
+# ─────────────────────────────────────────────────────────────────────────────
+BODY = r"""
+<div class="announce">Taking <b>__CAPACITY__ cover projects</b> in <b id="mo">September</b>. <span id="slots"></span></div>
+
+<header>
+  <div class="wrap nav">
+    <a class="brand" href="#top">KDPChimp<em>.</em></a>
+    <nav class="nav-links">
+      <a href="#process">Process</a>
+      <a href="#review">Our framework</a>
+      <a href="#involvement">Working with us</a>
+      <a href="#work">Portfolio</a>
+      <a href="#reviews">Reviews</a>
+      <a href="#pricing">Pricing</a>
+      <a href="#faq">FAQ</a>
+    </nav>
+    <a class="btn btn-primary" id="headerCta" href="#pricing">Order My Cover</a>
+  </div>
+</header>
+
+<main id="top">
+
+  <section class="hero">
+    <div class="wrap hero-grid">
+      <div>
+        <p class="eyebrow">Professional book cover design</p>
+        <h1>The cover is the ad.<br>Yours should <span class="hl">earn the click.</span></h1>
+        <p class="lede">
+          A KDP expert researches your niche. Dozens of concepts, explored with you.
+          The strongest one refined until you love it, then built by hand in fully
+          editable layers &mdash; in every format your book needs, with support all
+          the way through your KDP upload.
+        </p>
+        <div class="rating">
+          <span class="s">&#9733;&#9733;&#9733;&#9733;&#9733;</span>
+          <span>Rated 4.9/5 with 100+ reviews</span>
+        </div>
+        <div class="btn-row">
+          <a class="btn btn-primary" href="#pricing">Order My Cover &mdash; $499</a>
+          <a class="btn btn-quiet" href="#process">See the process</a>
+        </div>
+        <p class="micro">Kindle, paperback, hardcover &amp; ACX &middot; Layered source files you own &middot; Unlimited revisions on your chosen direction</p>
+      </div>
+      <div class="fan" id="heroFan"></div>
+    </div>
+  </section>
+
+  <div class="trust">
+    <div class="wrap">
+      <div class="stat"><b>4.9/5</b><span>across 100+ reviews</span></div>
+      <div class="stat"><b>30+</b><span>publishers on the new system</span></div>
+      <div class="stat"><b>8 yrs</b><span>publishing on KDP ourselves</span></div>
+      <div class="stat"><b>100+</b><span>books published in-house</span></div>
+    </div>
+  </div>
+
+  <div class="niches">
+    <p class="lbl">Niches we've designed covers for</p>
+    <div class="mq-mask">
+      <div class="marquee" id="mq1"></div>
+      <div class="marquee rev" id="mq2"></div>
+    </div>
+  </div>
+
+  <section>
+    <div class="wrap">
+      <p class="eyebrow">Why most covers underperform</p>
+      <h2>A cover doesn't have to be beautiful.<br>It has to win a 200-pixel fight.</h2>
+      <p class="lede" style="margin-top:20px">
+        Your reader meets your cover at thumbnail size, in a grid, beside fifteen
+        competitors, for about a second. Most of what makes a cover &ldquo;nice&rdquo;
+        is invisible at that size &mdash; and most of what makes it sell is decided
+        long before anyone opens Photoshop.
+      </p>
+      <div class="split" style="margin-top:38px">
+        <div class="card bad">
+          <h3>Generating a cover yourself</h3>
+          <p>
+            One prompt, one look, and no idea whether it matches what buyers in your
+            category already respond to. Warped type, unusable resolution, and a
+            flattened image you can never edit &mdash; so the next book in the series
+            starts from scratch again.
+          </p>
+        </div>
+        <div class="card good">
+          <h3>Working with KDPChimp</h3>
+          <p>
+            A KDP expert researches your market first. You see dozens of directions
+            before committing to one. The winner is refined with you, rebuilt by hand
+            in proper editable layers, delivered in every format &mdash; and we stay
+            with you until it's live on Amazon and rendering correctly.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="rule">
+
+  <section id="process">
+    <div class="wrap">
+      <p class="eyebrow">The process</p>
+      <h2>Six steps. No guesswork.</h2>
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">01</div>
+          <div class="sc"><h3>Niche &amp; competitor research</h3><span class="who">Your project manager</span></div>
+          <p>
+            Your project manager is a working KDP publisher who coaches other
+            publishers for a living. Before anything is designed, they study your
+            category and your direct competitors to identify the visual language your
+            ideal readers already associate with the genre &mdash; the cues that tell a
+            browsing buyer &ldquo;this is the book I'm looking for&rdquo; before
+            they've read a word.
+          </p>
+        </div>
+        <div class="step">
+          <div class="step-num">02</div>
+          <div class="sc"><h3>Dozens of concepts, explored with you</h3><span class="who">Your designer</span></div>
+          <p>
+            Not two or three safe options. A wide spread of genuinely different
+            directions &mdash; imagery, typography, colour, mood &mdash; so the
+            expensive decision gets made visually and early, while it's still cheap
+            to change your mind.
+          </p>
+        </div>
+        <div class="step">
+          <div class="step-num">03</div>
+          <div class="sc"><h3>You choose, in a proper review app</h3><span class="who">Your call</span></div>
+          <p>
+            Every concept lands in a private review page. Rank your first, second
+            and third choice, comment directly on the design you mean, and see each
+            one beside the competitors it will sit next to on Amazon. Your feedback
+            stays attached to the concept it's about &mdash; instead of being
+            described from memory in a reply.
+          </p>
+        </div>
+        <div class="step">
+          <div class="step-num">04</div>
+          <div class="sc"><h3>Refined until you love it</h3><span class="who">Your designer</span></div>
+          <p>
+            We take the winning direction and sharpen it &mdash; composition,
+            hierarchy, thumbnail legibility, the details that decide whether it earns
+            a click. Revisions on your chosen direction are unlimited. We're not
+            counting rounds.
+          </p>
+        </div>
+        <div class="step">
+          <div class="step-num">05</div>
+          <div class="sc"><h3>Built by hand, in every format</h3><span class="who">Your designer</span></div>
+          <p>
+            Your cover is manually rebuilt in Photoshop: typography matched and reset
+            properly, artwork cleaned, every element separated onto its own layer.
+            Then built out for Kindle, paperback, hardcover and ACX &mdash; each to
+            its own trim, with the spine calculated to your exact page count.
+          </p>
+        </div>
+        <div class="step">
+          <div class="step-num">06</div>
+          <div class="sc"><h3>KDP upload support</h3><span class="who">Your project manager</span></div>
+          <p>
+            We don't hand you files and disappear. Your project manager walks you
+            through the upload, checks the previewer renders correctly, and sorts out
+            anything it flags &mdash; so the cover you approved is the cover that
+            goes live.
+          </p>
+        </div>
+      </div>
+
+      <div class="layers">
+        <figure class="layers-img">
+          <img src="assets/layers-explained.webp" loading="lazy" width="1100" height="833"
+               alt="The Effortless Anti-Inflammatory Diet Cookbook cover, pulled apart into its three editable layers: typography, visual, and background.">
+        </figure>
+        <div>
+          <p class="eyebrow">What &ldquo;editable layers&rdquo; actually means</p>
+          <h3>Your cover arrives in pieces &mdash; on purpose.</h3>
+          <p style="margin:0">
+            A flattened JPEG is a dead end. Every cover we build comes apart into its
+            separate elements, each one still fully editable in Photoshop:
+          </p>
+          <ul class="layer-list">
+            <li><span class="ic">&#9998;</span><div><b>Typography</b><span>Title, subtitle and author name as live, editable text on their own layer.</span></div></li>
+            <li><span class="ic">&#9673;</span><div><b>Visual</b><span>Characters, objects and focal elements cut out cleanly and moveable.</span></div></li>
+            <li><span class="ic">&#9635;</span><div><b>Background</b><span>The full artwork underneath, complete and uncropped.</span></div></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="callout">
+        <h3>What the layers are actually for</h3>
+        <div class="three">
+          <div><b>Expand into a series</b><span>Book two matches book one exactly &mdash; same type, same treatment, no rebuild from scratch.</span></div>
+          <div><b>Update it later</b><span>New subtitle, new badge, new edition &mdash; changed in minutes, not redesigned.</span></div>
+          <div><b>Hand it to anyone</b><span>Any designer can open it and work with it. You're never locked to us.</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+
+  <hr class="rule">
+
+  <section id="review">
+    <div class="wrap">
+      <p class="eyebrow">Our framework</p>
+      <h2>Every cover is scored before <span class="hl">you ever see it.</span></h2>
+      <p class="lede" style="margin-top:20px">
+        &ldquo;It looks nice&rdquo; is not a standard. Every concept we put in front of
+        you has been through the same six-point review &mdash; the one we developed
+        from studying what actually sells in KDP categories, and the reason you're
+        choosing between good options instead of sorting the good from the broken.
+      </p>
+
+      <div class="criteria">
+        <div class="crit"><i>01</i><b>Thumbnail readability</b><span>Can the title be read at the size Amazon actually shows it? This is where most covers quietly fail.</span></div>
+        <div class="crit"><i>02</i><b>Visual hierarchy</b><span>Does the eye land on the right thing first, second, third &mdash; or is everything shouting at once?</span></div>
+        <div class="crit"><i>03</i><b>Imagery, concept &amp; story</b><span>Does the picture tell <em>this</em> book's story, or is it decoration that could sit on any book?</span></div>
+        <div class="crit"><i>04</i><b>Genre signalling</b><span>Does it look like the category it competes in? Break the genre's rules and browsers scroll past without knowing why.</span></div>
+        <div class="crit"><i>05</i><b>Composition &amp; spacing</b><span>Margins, balance, breathing room. The difference between designed and assembled.</span></div>
+        <div class="crit"><i>06</i><b>Technical correctness</b><span>Resolution, bleed, trim, spine, safe zones &mdash; everything that decides whether KDP accepts it and print matches screen.</span></div>
+      </div>
+
+      <div class="tests">
+        <div class="test">
+          <h3>The grayscale test</h3>
+          <p>
+            We strip the colour out. If the cover stops working, it was leaning on
+            colour to do a job that composition and contrast should be doing &mdash;
+            and it will fall apart next to a brighter competitor.
+          </p>
+        </div>
+        <div class="test">
+          <h3>The blur / squint test</h3>
+          <p>
+            We blur it until only the strongest shapes survive. Whatever is still
+            legible is what a scrolling buyer actually registers in the second before
+            they decide. If nothing survives, neither does the sale.
+          </p>
+        </div>
+      </div>
+
+      <div class="compare">
+        <h3>And we put it on the shelf beside your competition.</h3>
+        <p>
+          Your cover doesn't get judged on its own. It gets judged in a grid, at
+          thumbnail size, next to the current bestsellers in your category. So that's
+          exactly how we review it &mdash; your cover dropped into a simulated Amazon
+          results row beside the books it will actually compete with.
+        </p>
+        <div class="shelf" id="shelf"></div>
+        <p class="shelf-note">
+          If it doesn't stand out here, it doesn't matter how good it looks at full size.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <hr class="rule">
+
+  <section id="involvement">
+    <div class="wrap">
+      <p class="eyebrow">How you work with us</p>
+      <h2>As hands-on as you want to be. Not a click more.</h2>
+      <p class="lede" style="margin-top:20px">
+        You get a dedicated project manager who is also a KDP expert, guiding you
+        through the whole process &mdash; and a dedicated professional graphic
+        designer at your disposal. That's what lets you choose your own level of
+        involvement: someone who understands your business is already holding the
+        details.
+      </p>
+      <div class="modes">
+        <div class="mode">
+          <p class="kicker">Option A</p>
+          <h3>Take it off my plate</h3>
+          <p>
+            You're publishing at volume, and cover design is not where you want your
+            week to go &mdash; not re-prompting for a result that's nearly right, and
+            not running three rounds of revisions on mistakes that should never have
+            reached you. Send the brief and step away; your project manager takes it
+            from there.
+          </p>
+          <ul class="ticks">
+            <li>A variety of high-quality covers, checked before you see them</li>
+            <li>Optimised for your specific niche and your book's offer</li>
+            <li>Nothing reaches you until it's worth your attention</li>
+            <li>We stay with you through the KDP upload until it renders correctly</li>
+          </ul>
+        </div>
+        <div class="mode">
+          <p class="kicker">Option B</p>
+          <h3>I want to be in the room</h3>
+          <p>
+            You have strong opinions about your cover and you should &mdash; it's your
+            book. Work with us directly, comment on every concept, and steer the
+            direction as closely as you like.
+          </p>
+          <ul class="ticks">
+            <li>One-on-one with your project manager, not a support queue</li>
+            <li>Comment on any concept in your private review page</li>
+            <li>Highly responsive &mdash; and personalised to how you work</li>
+            <li>Unlimited revisions on your chosen direction</li>
+          </ul>
+        </div>
+      </div>
+      <div class="pm-strip">
+        <div><b>We know your business</b><span>How you publish and how you make money from it.</span></div>
+        <div><b>We know your customers</b><span>Who buys in your category and what makes them click.</span></div>
+        <div><b>We know your niche</b><span>The visual rules that category rewards, and the ones it punishes.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="work">
+    <div class="wrap">
+      <p class="eyebrow">Selected work</p>
+      <h2>Built for the categories they compete in.</h2>
+      <p class="lede" style="margin-top:20px">
+        Fiction, children's, health, how-to and trivia &mdash; every genre has its own
+        visual rules, and breaking them quietly costs you clicks.
+      </p>
+      <div class="gallery" id="gallery"></div>
+      <div class="btn-row" style="margin-top:34px">
+        <a class="btn btn-primary" href="#pricing">Order My Cover &mdash; $499</a>
+      </div>
+    </div>
+  </section>
+
+  <hr class="rule">
+
+  <section id="reviews">
+    <div class="wrap">
+      <p class="eyebrow">Reviews</p>
+      <h2>Rated 4.9/5 by publishers who've shipped.</h2>
+      <div class="quotes" id="quotes"></div>
+      <div class="btn-row" style="margin-top:30px">
+        <a class="btn btn-quiet" href="https://kdpchimp.com/testimonials/" target="_blank" rel="noopener">Watch the video reviews</a>
+      </div>
+    </div>
+  </section>
+
+  <section id="pricing">
+    <div class="wrap">
+      <p class="eyebrow">Pricing</p>
+      <h2>One price. Everything included.</h2>
+      <div class="price-wrap">
+        <div class="price">
+          <span class="tag">Professional book cover design</span>
+          <div class="amount">$499 <small>one-off, per book</small></div>
+          <ul class="ticks">
+            <li>Niche and competitor research by a working KDP publisher</li>
+            <li>Dozens of original concepts, explored with you</li>
+            <li>Private review page &mdash; rank and comment on any concept</li>
+            <li>Our six-point cover review &mdash; including the grayscale and blur tests</li>
+            <li>Competitor thumbnail comparison at real Amazon browse size</li>
+            <li>Unlimited revisions on your chosen direction</li>
+            <li>Every format: Kindle, paperback, hardcover and ACX</li>
+            <li>Spine built to your exact page count and trim</li>
+            <li>Layered source files &mdash; the design is yours to keep</li>
+            <li>KDP upload support until it's live and rendering right</li>
+          </ul>
+          <div class="btn-row" style="margin-top:0">
+            <a class="btn btn-primary" id="payStripe" href="#">Pay with card</a>
+            <a class="btn btn-quiet" id="payPaypal" href="#">PayPal</a>
+          </div>
+          <p class="slots" id="slots2"></p>
+          <p class="secure">Secure checkout via Stripe &amp; PayPal &middot; Design brief sent immediately after payment</p>
+        </div>
+        <div>
+          <div class="price alt">
+            <span class="tag">Gold &mdash; limited pilot</span>
+            <div class="amount">$499 <small>/month</small></div>
+            <p style="margin-top:16px;font-size:15.5px">
+              For publishers shipping continuously. Unlimited design requests &mdash;
+              covers, A+ content, product images &mdash; one active project at a time,
+              plus direct access to Josiah for publishing and listing strategy.
+            </p>
+            <ul class="ticks" style="margin:18px 0 24px">
+              <li>Unlimited requests, one at a time</li>
+              <li>Pause or cancel any month</li>
+              <li>Direct strategy access, not a ticket queue</li>
+            </ul>
+            <a class="btn btn-quiet" id="goldCta" href="#">Apply for a pilot spot</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="guarantee">
+        <div class="seal" aria-hidden="true">
+          <span class="pct">100%</span>
+          <span class="sub">That's<br>the one</span>
+        </div>
+        <div>
+          <h3>The &ldquo;That's The One&rdquo; Guarantee</h3>
+          <p>
+            We revise your chosen direction until you say &ldquo;that's the one.&rdquo;
+            And every concept clears our six-point review before it reaches you, so
+            what you're choosing between is finished work &mdash; not first drafts
+            with your name on them.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="rule">
+
+  <section id="faq">
+    <div class="wrap">
+      <p class="eyebrow">Questions</p>
+      <h2>Before you order.</h2>
+      <div style="margin-top:32px">
+        <details open>
+          <summary>How is this different from generating a cover myself?</summary>
+          <p>Three ways. A KDP expert researches your market and competitors first, so the concepts start from what already sells in your category rather than from a prompt. You see dozens of directions and choose, instead of accepting whatever one generation produced. And the result is built manually in fully editable layers, in every format your book needs &mdash; not a flattened image you can never change.</p>
+        </details>
+        <details>
+          <summary>What does &ldquo;unlimited revisions&rdquo; actually cover?</summary>
+          <p>Once you've picked a direction, we refine it as many times as it takes &mdash; typography, colour, imagery, hierarchy &mdash; until you're happy. There's no round counter and no upcharge. Deciding you want a completely different direction after we've started building is a conversation rather than an automatic no; we'll tell you honestly what it means for your timeline.</p>
+        </details>
+        <details>
+          <summary>Which formats do I get?</summary>
+          <p>All of them: Kindle, paperback, hardcover and ACX audiobook. Each is a different trim and aspect ratio, and each is built properly rather than stretched from the last one &mdash; with the spine calculated to your exact page count. You also get the layered source files, so the design is yours outright.</p>
+        </details>
+        <details>
+          <summary>Do you use AI?</summary>
+          <p>In the exploration stage, yes, and we're open about that &mdash; it's why you get dozens of directions instead of three. But nothing ships as a raw AI output. The direction you choose is rebuilt by hand in Photoshop: typography reset properly, artwork cleaned and corrected, every element separated into real layers. If a concept can't be brought to a professional standard, we tell you rather than shipping it.</p>
+        </details>
+        <details>
+          <summary>How do you know a cover will actually work?</summary>
+          <p>We don't guess and we don't put it to a vote in the office. Every concept goes through our six-point review &mdash; thumbnail readability, visual hierarchy, imagery and story, genre signalling, composition and spacing, technical correctness &mdash; plus the grayscale test and the blur test, which between them tell you whether a cover is carrying its weight or leaning on colour and detail that vanish at browse size. Then we drop it into a simulated Amazon results row beside your actual competitors, because that is the only context in which your buyer will ever see it.</p>
+        </details>
+        <details>
+          <summary>How long does it take?</summary>
+          <p>Concepts typically reach you within a few days of the brief, and the finished files follow once you've chosen a direction and we've worked through revisions. Pace depends mostly on how quickly your feedback comes back &mdash; your project manager gives you a schedule for your specific project when it starts.</p>
+        </details>
+        <details>
+          <summary>What if I don't like any of the concepts?</summary>
+          <p>It's rare across dozens of directions, but it happens &mdash; and it's usually a sign the brief needs sharpening rather than the design. We'll talk it through and go again on a new direction.</p>
+        </details>
+        <details>
+          <summary>Can you match an existing series?</summary>
+          <p>Yes, and this is where the layered files earn their keep. Send the existing covers and we'll build to the series' typography, palette and layout so the new title sits correctly alongside them on your author page.</p>
+        </details>
+        <details>
+          <summary>Who's actually doing the work?</summary>
+          <p>A small fixed team, not a marketplace. You get a dedicated professional graphic designer who produces every concept for your book and does all the Photoshop finishing by hand &mdash; the same person start to finish, not whoever a marketplace assigns this week. And a dedicated project manager who is a working KDP publisher and coaches other publishers; they handle the research, your review page and your KDP upload. Josiah, who founded KDPChimp, has published 100+ books across eight years on KDP.</p>
+        </details>
+        <details>
+          <summary>Why only __CAPACITY__ projects a month?</summary>
+          <p>Because the same designer builds every cover and the same project manager runs every project personally. __CAPACITY__ is what the two of them can do without the quality slipping or your emails going unanswered. When the month is full, we'll tell you the next start date rather than take your money and put you in a queue.</p>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <section class="final">
+    <div class="wrap">
+      <h2>Your book gets one second on the shelf.</h2>
+      <p class="lede" style="margin-top:18px">
+        Give it a cover researched for its market, chosen by you, and built to keep
+        working for every book that follows.
+      </p>
+      <div class="btn-row">
+        <a class="btn btn-primary" id="finalCta" href="#pricing">Order My Cover &mdash; $499</a>
+        <a class="btn btn-quiet" id="emailCta" href="#">Ask a question first &mdash; opens your email</a>
+      </div>
+      <p class="ps">
+        <b>P.S.</b> &mdash; If you're weighing this against another $30 on cover
+        prompts: the cost isn't the $30. It's the six weeks your book sits at a
+        conversion rate you can't diagnose, because the one variable every browsing
+        buyer sees is the one you settled on.
+      </p>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div>&copy; <span id="yr"></span> KDPChimp</div>
+    <div><a href="mailto:support@kdpchimp.com">support@kdpchimp.com</a> &middot;
+         <a href="https://kdpchimp.com" target="_blank" rel="noopener">kdpchimp.com</a></div>
+  </div>
+</footer>
+"""
+
+SCRIPT = r"""
+/* =====================================================================
+   CONFIG — everything you need to edit lives in this one block.
+   ===================================================================== */
+const CONFIG = {
+
+  /* 1. PAYMENT LINKS — empty links fall back to email, so nothing breaks. */
+  stripeLink : "",
+  paypalLink : "",
+  goldLink   : "",
+  email      : "support@kdpchimp.com",
+
+  /* 2. CAPACITY — update slotsLeft as the month fills. Set to null to hide.
+     `month` names the current month in the announcement bar and pricing card. */
+  capacity   : 10,
+  month      : "September",
+  slotsLeft  : null,          // e.g. 4  →  "4 slots left this month."
+
+  /* 3. PORTFOLIO — real delivered covers, chosen by your /10 quality
+     ranking in Airtable: all nine 7s plus seven 6s picked to widen the
+     niche spread. Files live in assets/covers/ (700px wide, ~150KB each).
+     Ordered so no two adjacent tiles share a niche.                    */
+  covers: [
+    { genre:"Children's Trivia",        src:"assets/covers/baseball-trivia.jpg" },
+    { genre:"Health & Wellness",        src:"assets/covers/herbal-apothecary.jpg" },
+    { genre:"Kids' Faith",              src:"assets/covers/brave-with-god.jpg" },
+    { genre:"Cookbooks & Diet",         src:"assets/covers/anti-inflammatory.jpg" },
+    { genre:"Puzzles for Seniors",      src:"assets/covers/memory-games.jpg" },
+    { genre:"Historical Fiction",       src:"assets/covers/weeping-waters.jpg" },
+    { genre:"Children's Activity",      src:"assets/covers/67-boss.jpg" },
+    { genre:"Personal Finance",         src:"assets/covers/social-security.jpg" },
+    { genre:"Youth Life Skills",        src:"assets/covers/murphys-law-kids.jpg" },
+    { genre:"Kids' Sports",             src:"assets/covers/hockey-stories.jpg" },
+    { genre:"Pets & Dog Training",      src:"assets/covers/calm-puppy.jpg" },
+    { genre:"Self-Help",                src:"assets/covers/outsmart-murphys-law.jpg" },
+    { genre:"Parenting & Family",       src:"assets/covers/autism-parenting.jpg" },
+    { genre:"Cookbooks & Diet",         src:"assets/covers/glp1-cookbook.jpg" },
+    { genre:"Tech Guides for Seniors",  src:"assets/covers/iphone-seniors.jpg" },
+    { genre:"Children's Activity",      src:"assets/covers/baseball-activity.jpg" }
+  ],
+
+  /* 3b. THE COMPETITOR SHELF — the simulated Amazon browse row.
+     `yours` is one of our covers; `competitors` MUST be real thumbnails from the
+     category, screenshotted off Amazon, or the comparison proves nothing. Drop
+     them in assets/shelf/ and list them here. Empty = falls back to portfolio
+     covers, which is only a placeholder.                                 */
+  shelf: {
+    // Our Anti-Inflammatory cookbook cover, dropped into a row of seven REAL
+    // competing titles pulled from that Amazon category (Sept 2026).
+    yours       : "assets/covers/anti-inflammatory.jpg",
+    position    : 3,          // where our cover sits in the row
+    competitors : [
+      "assets/shelf/comp-1.jpg", "assets/shelf/comp-2.jpg", "assets/shelf/comp-3.jpg",
+      "assets/shelf/comp-4.jpg", "assets/shelf/comp-5.jpg", "assets/shelf/comp-6.jpg",
+      "assets/shelf/comp-7.jpg"
+    ]
+  },
+
+  /* 4. NICHES — the scrolling band. Splits across two rows automatically. */
+  niches: [
+    "Historical Fiction","Paranormal & Horror","Children's Activity Books","Kids' Sports",
+    "Christian & Theology","Health & Wellness","Cookbooks","Air Fryer & Diet","Parenting",
+    "Tech Guides for Seniors","Puzzles & Word Search","Trivia & Nostalgia","Self-Help",
+    "Personal Finance","Travel Guides","Career & Interview Prep","Journals & Workbooks",
+    "Colouring & Clip Art","Kids' Faith","Memoir","Fitness & Nutrition","Crosswords",
+    "Middle Grade","Study Guides","Gift & Bathroom Books","Non-English Editions"
+  ],
+
+  /* 5. REVIEWS — from kdpchimp.com/testimonials. "..." marks where a longer
+     quote was shortened; check wording against your live page.          */
+  quotes: [
+    /* Every quote below is VERIFIED word-for-word from the customer's own email
+       (pulled during the Sept 2026 inbox audit), and every one of these people
+       also appears publicly on kdpchimp.com/testimonials — so nothing here is
+       new to the world. "…" marks where a longer message was shortened.
+       All are about BOOK COVERS specifically, not A+ content. */
+    { t:"Josiah did an outstanding job designing the book cover for my first book… The book cover is visually striking and aligns perfectly with the theme", n:"Jim Ray", d:"Book cover client" },
+    { t:"Their attention to detail in the graphics, design, and formatting of my bookcover was what truly brought my vision to life", n:"Urbi Ghosh", d:"Book cover client" },
+    { t:"His design skills are nothing short of extraordinary… brought a unique artistic flair that elevated our project beyond our expectations", n:"Angela &amp; Gérald", d:"Book cover clients" },
+    { t:"If you need a visually stunning book cover… KDPChimp can do it all!", n:"Lucy &amp; Joseph Naim", d:"Book cover clients" },
+    { t:"You did such a great job. I love them both… Love the covers!!!!", n:"Julia Bailey", d:"Book cover client" },
+    { t:"The cover looks fantastic, and the team did a great job.", n:"Sarisa", d:"Book cover client" },
+    { t:"Working with Josiah from KDPChimp has been an absolutely fantastic experience!", n:"Jyotsna Ramachandran", d:"Founder &amp; CEO, Happy Self Publishing" }
+  ]
+};
+
+/* ===================== rendering (no need to edit) ==================== */
+(function(){
+  const g=document.getElementById('gallery');
+  CONFIG.covers.forEach(c=>{
+    const f=document.createElement('figure');
+    f.className='tile';
+    f.innerHTML='<img loading="lazy" src="'+c.src+'" alt="Book cover design — '+c.genre+'">'+
+                '<figcaption>'+c.genre+'</figcaption>';
+    g.appendChild(f);
+  });
+
+  const fan=document.getElementById('heroFan');
+  [0,1,3].forEach(i=>{
+    const c=CONFIG.covers[i]; if(!c) return;
+    const el=document.createElement('img');
+    el.src=c.src; el.alt='Book cover design — '+c.genre;
+    fan.appendChild(el);
+  });
+
+  const chip=n=>{const e=document.createElement('span');e.className='chip';e.textContent=n;return e};
+  const mid=Math.ceil(CONFIG.niches.length/2);
+  [[document.getElementById('mq1'),CONFIG.niches.slice(0,mid)],
+   [document.getElementById('mq2'),CONFIG.niches.slice(mid)]].forEach(([el,list])=>{
+    if(!el) return;
+    list.concat(list).forEach(n=>el.appendChild(chip(n)));  // doubled for a seamless loop
+  });
+
+  const shelf=document.getElementById('shelf');
+  if(shelf){
+    // One cover of ours dropped into a row of REAL competitors from the category.
+    // CONFIG.shelf.competitors should be actual Amazon thumbnails — until they're
+    // added, this falls back to portfolio covers so the section never looks broken.
+    const S = CONFIG.shelf || {};
+    const comps = (S.competitors && S.competitors.length)
+      ? S.competitors.slice()
+      : CONFIG.covers.slice(1,6).map(c=>c.src);
+    const mine = S.yours || CONFIG.covers[0].src;
+    const at = Math.min(Math.max(S.position==null?2:S.position,0),comps.length);
+    const row = comps.slice();
+    row.splice(at,0,mine);
+    row.forEach((src,i)=>{
+      const f=document.createElement('figure');
+      const isMine = i===at;
+      if(isMine) f.className='mine';
+      f.innerHTML='<img loading="lazy" src="'+src+'" alt="'+(isMine?'A cover we designed':'A competing book in the same category')+'">'+
+                  '<figcaption>'+(isMine?'Your cover':'Competitor')+'</figcaption>';
+      shelf.appendChild(f);
+    });
+  }
+
+  const q=document.getElementById('quotes');
+  CONFIG.quotes.forEach(x=>{
+    const b=document.createElement('blockquote');
+    b.innerHTML='<div class="s">★★★★★</div><p>“'+x.t+'”</p>'+
+                '<cite>'+x.n+'<small>'+x.d+'</small></cite>';
+    q.appendChild(b);
+  });
+
+  const M = CONFIG.month || 'this month';
+  const mo=document.getElementById('mo'); if(mo) mo.textContent=M;
+  // announcement bar: only adds a count once you start filling the month
+  const left = CONFIG.slotsLeft==null ? ''
+    : (CONFIG.slotsLeft>0 ? CONFIG.slotsLeft+' left.' : 'Full \u2014 ask for the next start date.');
+  const s1=document.getElementById('slots'); if(s1) s1.textContent=left;
+  // pricing card: always states the month and the number
+  const s2=document.getElementById('slots2');
+  if(s2) s2.textContent = CONFIG.slotsLeft==null
+    ? CONFIG.capacity+' slots for '+M+'.'
+    : (CONFIG.slotsLeft>0 ? CONFIG.slotsLeft+' of '+CONFIG.capacity+' '+M+' slots left.'
+                          : M+' is full \u2014 ask us for the next start date.');
+
+  const mail=s=>'mailto:'+CONFIG.email+'?subject='+encodeURIComponent(s);
+  const set=(id,link,subject)=>{
+    const el=document.getElementById(id); if(!el) return;
+    el.href=link||mail(subject);
+    if(link) el.target='_blank';
+  };
+  // header + closing CTA jump straight to checkout once the link exists;
+  // until then they fall back to the pricing section rather than a dead mailto
+  ['headerCta','finalCta'].forEach(id=>{
+    const el=document.getElementById(id); if(!el) return;
+    if(CONFIG.stripeLink){ el.href=CONFIG.stripeLink; el.target='_blank'; el.rel='noopener'; }
+  });
+  set('payStripe',CONFIG.stripeLink,'Book cover order — card payment');
+  set('payPaypal',CONFIG.paypalLink,'Book cover order — PayPal');
+  set('goldCta',  CONFIG.goldLink,  'Gold pilot — application');
+  const e=document.getElementById('emailCta');
+  if(e) e.href=mail('Question about book cover design');
+  document.getElementById('yr').textContent=new Date().getFullYear();
+})();
+"""
+
+SHELL = """<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Professional Book Cover Design for Amazon KDP | KDPChimp</title>
+<meta name="description" content="Niche-researched cover design for serious self-publishers. Dozens of concepts explored with you, refined until you love it, built by hand in editable layers. Kindle, paperback, hardcover and ACX. $499.">
+<meta property="og:title" content="Professional Book Cover Design for Amazon KDP | KDPChimp">
+<meta property="og:description" content="The cover is the ad. Yours should earn the click. $499, every format, layered source files you own.">
+<meta property="og:type" content="website">
+<meta name="theme-color" content="__THEMECOLOR__">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="alternate icon" href="assets/favicon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?__FONTS__&display=swap" rel="stylesheet">
+<style>__CSS__</style>
+</head>
+<body>
+__BODY__
+<script>__SCRIPT__</script>
+</body>
+</html>
+"""
+
+CAPACITY = "10"
+
+# The style that ships. Change and re-run to switch.
+CHOSEN = "directresponse"
+
+def build():
+    out = pathlib.Path(__file__).parent
+    for key, t in THEMES.items():
+        css = CSS.replace("__THEME__", t["css"]).replace("__BTNTEXT__", BTN_TEXT[key])
+        html = (SHELL
+                .replace("__THEMECOLOR__", t["theme_color"])
+                .replace("__FONTS__", t["fonts"])
+                .replace("__CSS__", css)
+                .replace("__BODY__", BODY)
+                .replace("__SCRIPT__", SCRIPT)
+                .replace("__CAPACITY__", CAPACITY))
+        path = out / f"index-{key}.html"
+        path.write_text(html)
+        print(f"wrote {path.name}  ({t['name']} — {t['note']})")
+        if key == CHOSEN:
+            (out / "index.html").write_text(html)
+            print(f"       └─ also written to index.html  (CHOSEN = {CHOSEN})")
+
+if __name__ == "__main__":
+    build()

@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="KDPChimp">
+  <rect width="64" height="64" rx="14" fill="#121212"/>
+  <g fill="#FFFFFF">
+    <rect x="14" y="14" width="8.5" height="36" rx="1"/>
+    <polygon points="21,34 38,14 49,14 33,33"/>
+    <polygon points="21,30 38,50 49,50 33,31"/>
+  </g>
+  <circle cx="52" cy="47" r="6" fill="#F2600C"/>
+</svg>

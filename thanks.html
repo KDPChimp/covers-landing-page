@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Order Confirmed — KDPChimp Book Covers</title>
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#0D161B">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;700;800&family=Poppins:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  :root{--navy:#0D161B;--slate:#0F172A;--blue:#0074A2;--cyan:#89DEFF;--gold:#FEC42D;
+        --white:#fff;--grey:#CCD6DF;--grey-2:#8fa0ae;--line:rgba(137,222,255,.16)}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--navy);color:var(--white);
+       font:500 16px/1.7 'Montserrat',-apple-system,BlinkMacSystemFont,sans-serif;
+       display:grid;place-items:center;min-height:100vh;padding:44px 20px;position:relative;overflow-x:hidden}
+  body::before{content:"";position:absolute;inset:-30% -20% auto -20%;height:70%;
+       background:radial-gradient(50% 55% at 50% 0%,rgba(0,116,162,.32),transparent 72%);pointer-events:none}
+  .box{max-width:620px;width:100%;position:relative}
+  .mark{width:60px;height:60px;border-radius:14px;background:var(--blue);color:#fff;
+        display:grid;place-items:center;font-size:28px;margin-bottom:26px;
+        box-shadow:0 10px 34px -12px rgba(0,116,162,.9)}
+  .eyebrow{font-family:'Poppins',sans-serif;font-size:12px;font-weight:700;letter-spacing:.16em;
+        text-transform:uppercase;color:var(--cyan);margin:0 0 12px}
+  h1{font-size:clamp(30px,5.4vw,42px);font-weight:800;line-height:1.14;letter-spacing:-.02em;margin:0 0 16px}
+  p{color:var(--grey);margin:0 0 1em}
+  ol{counter-reset:s;list-style:none;padding:0;margin:32px 0 0;display:grid;gap:12px}
+  ol li{counter-increment:s;background:var(--slate);border:1px solid var(--line);
+        border-radius:12px;padding:17px 20px 17px 56px;position:relative;color:var(--grey);font-size:15.5px}
+  ol li::before{content:"0" counter(s);position:absolute;left:19px;top:17px;
+        color:var(--blue);font-weight:800;font-size:16px}
+  ol li b{color:var(--white);display:block;font-weight:700}
+  .btn{display:inline-flex;align-items:center;gap:9px;margin-top:32px;padding:15px 26px;
+       border-radius:8px;background:var(--blue);color:#fff;font-weight:700;font-size:15px;
+       text-decoration:none;box-shadow:0 10px 34px -12px rgba(0,116,162,.65);
+       transition:transform .15s ease,background .15s ease}
+  .btn:hover{transform:translateY(-2px);background:#0089be}
+  small{display:block;margin-top:24px;color:var(--grey-2);font-size:13.5px}
+  a.plain{color:var(--cyan);text-decoration:none}
+</style>
+</head>
+<body>
+  <div class="box">
+    <div class="mark">&#10003;</div>
+    <p class="eyebrow">Payment received</p>
+    <h1>You're in. Let's build your cover.</h1>
+    <p>Your receipt is on its way by email. The only thing left is the design
+       brief &mdash; the faster that lands, the faster your concepts do.</p>
+
+    <ol>
+      <li><b>Fill in the design brief</b>Title, subtitle, genre, page count, trim size, and any covers you love or hate. Five minutes.</li>
+      <li><b>Cara opens your project</b>She'll email you from support@kdpchimp.com with your schedule, her market research notes, and your private review link.</li>
+      <li><b>Your concepts arrive</b>Dozens of directions in one page. Rank your favourites, comment on anything, and we go to work.</li>
+    </ol>
+
+    <!-- TODO: point this at your intake form (Tally / Fillout / the Lovable form) -->
+    <a class="btn" id="briefBtn" href="#">Fill In The Design Brief &rarr;</a>
+
+    <small>Questions at any point: <a class="plain" href="mailto:support@kdpchimp.com">support@kdpchimp.com</a></small>
+  </div>
+
+<script>
+  /* Paste your intake form URL here. The payment reference is passed through
+     as ?ref= so n8n can match the brief to the payment automatically. */
+  const BRIEF_FORM = ""; // e.g. "https://tally.so/r/xxxxxx"
+
+  const p = new URLSearchParams(location.search);
+  const ref = p.get("session_id") || p.get("token") || p.get("tx") || "";
+  const btn = document.getElementById("briefBtn");
+  btn.href = BRIEF_FORM
+    ? BRIEF_FORM + (BRIEF_FORM.includes("?") ? "&" : "?") + "ref=" + encodeURIComponent(ref)
+    : "mailto:support@kdpchimp.com?subject=" + encodeURIComponent("Book cover brief " + ref);
+</script>
+</body>
+</html>

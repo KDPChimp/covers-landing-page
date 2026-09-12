@@ -1,0 +1,5 @@
+# source + notes live in the repo but must never be served publicly
+build.py
+picker.html
+*.md
+_superseded/
