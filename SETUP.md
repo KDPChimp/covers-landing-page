@@ -96,35 +96,40 @@ in the gallery. The 4 June 2025 campaign that converted 2/2 asked about A+
 content, not covers, so neither grant carries over. `AUDIT-permissions-and-reviews.md`
 has the email template — it's your own wording with the noun changed.
 
-## 2. Payment links
+## 2. Payment links — DONE
 
-Create both, then paste into `CONFIG` at the top of the `<script>` in `index.html`.
+All three are live and already wired into `build.py`'s `CONFIG`. Nothing to do
+here unless you want to change them.
 
-**Stripe** → Product catalogue → new product "Professional Book Cover Design",
-$499 one-off → *Create payment link*.
-- After payment: **redirect to** `https://covers.kdpchimp.com/thanks.html`
-  (Stripe appends `?session_id=...` automatically — `thanks.html` reads it)
-- Turn on: collect customer name, email, and phone
-- Add a custom field: **Book title** (this lands in the webhook and saves Cara a round trip)
-- Allow promotion codes → lets you run the $399 discount as a coupon instead of
-  changing the price
+**Stripe** — `https://buy.stripe.com/4gMaEX9xt9q68goaeT8IU00`
+(`plink_1UEpEyId0vDOiNdF3ugfkDhD`, account `acct_1SIdcKId0vDOiNdF`, KDPChimp Limited)
+- Product **Professional Book Cover Design**, US$499 one-off
+- Collects email and full name. No phone.
+- Required custom field: **Book title**
+- Promotion codes on. **RH20** = 20% off, no expiry, no redemption cap
+  (coupon "Royalty Hero 20% off") → US$399.20. Verified working on the live page.
+- Redirects to `https://covers.kdpchimp.com/thanks.html` instead of Stripe's
+  own confirmation page (Stripe appends `?session_id=...`, which `thanks.html` reads)
 
-**PayPal** → Pay Links & Buttons → new fixed-price link at $499 → set the return
-URL to the same `thanks.html`.
+**Known issue — Adaptive Pricing.** Stripe's Adaptive Pricing is ON, so buyers
+outside the US see their local currency *pre-selected*, with a 4% conversion fee
+shown under it. On a $499 item that line is a conversion risk. USD is still there
+as the second option. Turn it off in Stripe → Settings → Payments if you'd rather
+everyone paid in USD.
 
-```js
-stripeLink : "https://buy.stripe.com/...",
-paypalLink : "https://www.paypal.com/ncp/payment/...",
-goldLink   : "",   // leave empty → the Gold button opens an email to you
-```
+**Also in Stripe:** the old **Professional Book Cover** product at US$299 is still
+active and unused. Archive it so nobody picks the wrong one.
 
-Any link left empty falls back to a mailto, so the page is never broken.
+**PayPal** — not created yet. `paypal.com/businessmanage/paymentlinks` needs a
+passkey/Face ID login that only you can complete. Fixed price $499, return URL
+the same `thanks.html`, then set `paypalLink` in `build.py`.
 
-**Gold pilot:** leave `goldLink` empty for now. It's an untested $499/mo offer —
-let the applications come in by email, talk to the first few yourself, and only
-build a subscription checkout once someone has actually said yes.
+**Gold pilot** — `https://airtable.com/appuAp8Kb6iGqSejj/pagilVCTu8HE16bpc/form`
+Public Airtable form → `22 Gold Pilot Applications`. Name and email required
+(email validated), internal Status field hidden, and every submission emails the
+support@ account. The Gold button opens it in a new tab.
 
----
+Any link left empty in `CONFIG` falls back to a mailto, so the page is never broken.
 
 ## 3. Intake form
 
