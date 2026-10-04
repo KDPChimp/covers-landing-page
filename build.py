@@ -803,7 +803,7 @@ BODY = r"""
             <a class="btn btn-quiet" id="payPaypal" href="#">PayPal</a>
           </div>
           <p class="slots" id="slots2"></p>
-          <p class="secure">Secure checkout via Stripe &amp; PayPal &middot; Design brief sent immediately after payment</p>
+          <p class="secure">Secure checkout on kdpchimp.com &middot; card or PayPal</p>
         </div>
         <div>
           <div class="price alt">
@@ -930,15 +930,15 @@ SCRIPT = r"""
 const CONFIG = {
 
   /* 1. PAYMENT LINKS — empty links fall back to email, so nothing breaks. */
-  stripeLink : "https://buy.stripe.com/4gMaEX9xt9q68goaeT8IU00",
-  paypalLink : "https://www.paypal.com/ncp/payment/Y7EPZEEWP5P8J",
+  stripeLink : "https://kdpchimp.com/?add-to-cart=155",  // adds the cover to the kdpchimp.com cart (card or PayPal at checkout)
+  paypalLink : "https://kdpchimp.com/?add-to-cart=155",  // same checkout; PayPal is an option there
   goldLink   : "https://airtable.com/appuAp8Kb6iGqSejj/pagilVCTu8HE16bpc/form",
   email      : "support@kdpchimp.com",
 
   /* 2. CAPACITY — update slotsLeft as the month fills. Set to null to hide.
      `month` names the current month in the announcement bar and pricing card. */
-  capacity   : 10,
-  month      : "September",
+  capacity   : 15,
+  month      : new Date().toLocaleString('en-GB',{month:'long'}),  // current month, automatically
   slotsLeft  : null,          // e.g. 4  →  "4 slots left this month."
 
   /* 3. PORTFOLIO — real delivered covers, chosen by your /10 quality
@@ -1095,13 +1095,13 @@ const CONFIG = {
   const set=(id,link,subject)=>{
     const el=document.getElementById(id); if(!el) return;
     el.href=link||mail(subject);
-    if(link) el.target='_blank';
+    if(link && !link.startsWith('https://kdpchimp.com')) el.target='_blank';
   };
   // header + closing CTA jump straight to checkout once the link exists;
   // until then they fall back to the pricing section rather than a dead mailto
   ['headerCta','finalCta'].forEach(id=>{
     const el=document.getElementById(id); if(!el) return;
-    if(CONFIG.stripeLink){ el.href=CONFIG.stripeLink; el.target='_blank'; el.rel='noopener'; }
+    if(CONFIG.stripeLink){ el.href=CONFIG.stripeLink; }
   });
   set('payStripe',CONFIG.stripeLink,'Book cover order — card payment');
   set('payPaypal',CONFIG.paypalLink,'Book cover order — PayPal');
@@ -1149,7 +1149,7 @@ __BODY__
 </html>
 """
 
-CAPACITY = "10"
+CAPACITY = "15"
 
 # The style that ships. Change and re-run to switch.
 CHOSEN = "directresponse"
